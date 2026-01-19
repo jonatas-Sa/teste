@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão de Materiais - Canteiro de Obras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .menu-item {
+            display: block;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .menu-item.operador {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .menu-item.apontador {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚜 Sistema de Gestão de Materiais</h1>
+        <p class="subtitle">Canteiro de Obras - Gestão Inteligente</p>
+
+        <div class="menu">
+            <a href="/Home/OperadorMaquinario" class="menu-item operador">
+                <span class="icon">📱</span>
+                Operador de Maquinário
+                <br>
+                <small style="font-size: 12px; opacity: 0.9;">Rastreamento GPS em tempo real</small>
+            </a>
+
+            <a href="/Home/MapaApontador" class="menu-item apontador">
+                <span class="icon">🗺️</span>
+                Mapa do Apontador
+                <br>
+                <small style="font-size: 12px; opacity: 0.9;">Visualização de maquinários e solicitações</small>
+            </a>
+
+            <a href="/api/maquinario/mapa/1" class="menu-item">
+                <span class="icon">📊</span>
+                API - Maquinários (JSON)
+                <br>
+                <small style="font-size: 12px; opacity: 0.9;">Endpoint REST para dados</small>
+            </a>
+        </div>
+
+        <div class="info">
+            <strong>📱 Acessar pelo Celular:</strong><br>
+            <div style="background: #667eea; color: white; padding: 15px; border-radius: 8px; margin-top: 10px; text-align: center;">
+                <strong style="font-size: 18px;">http://192.168.1.12:5198</strong><br>
+                <small style="opacity: 0.9;">Use este endereço no navegador do celular</small>
+            </div>
+            <br>
+            <strong>ℹ️ Informações:</strong><br>
+            • Sistema configurado com PostgreSQL (Supabase)<br>
+            • Fuso horário: Brasília (UTC-3)<br>
+            • Rastreamento GPS em tempo real via navegador<br>
+            • API REST disponível em /api/*<br>
+            <br>
+            <strong>⚠️ Importante:</strong><br>
+            • Celular e computador devem estar na mesma rede Wi-Fi<br>
+            • Firewall do Windows pode bloquear conexões (permitir quando solicitado)
+        </div>
+    </div>
+</body>
+</html>

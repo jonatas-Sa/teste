@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa do Canteiro - Apontador</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .btn-refresh {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-refresh:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .last-update {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        .pulse-dot.online {
+            background: #28a745;
+        }
+
+        .pulse-dot.offline {
+            background: #dc3545;
+        }
+
+        /* Estilos para os ícones customizados do Leaflet */
+        .maquinario-icon {
+            background: #667eea;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 30px !important;
+            height: 30px !important;
+        }
+
+        .local-icon {
+            background: #28a745;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 25px !important;
+            height: 25px !important;
+        }
+
+        .deposito-icon {
+            background: #ffc107;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 25px !important;
+            height: 25px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Mapa do Canteiro de Obras</h1>
+        <p>Monitoramento em tempo real de maquinários e solicitações</p>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar com informações -->
+        <div class="sidebar">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalMaquinarios">0</div>
+                    <div class="stat-label">Maquinários</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="maquinariosDisponiveis">0</div>
+                    <div class="stat-label">Disponíveis</div>
+                </div>
+            </div>
+
+            <h2 style="font-size: 18px; margin-bottom: 15px; color: #333;">
+                📍 Maquinários Ativos
+            </h2>
+
+            <div id="listaMaquinarios">
+                <!-- Os maquinários serão carregados aqui via JavaScript -->
+            </div>
+
+            <button class="btn-refresh" onclick="atualizarMapa()">
+                <span id="btnRefreshText">🔄 Atualizar Localização</span>
+                <span id="loadingSpinner" class="loading" style="display: none;"></span>
+            </button>
+
+            <div class="last-update">
+                Última atualização: <span id="lastUpdate">-</span>
+            </div>
+        </div>
+
+        <!-- Área do Mapa -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÕES
+        // ============================================
+        const CONFIG = {
+            apiUrl: '/api/mapa/completo/1', // ID do canteiro
+            intervaloAtualizacao: 10000 // Atualizar a cada 10 segundos
+        };
+
+        let intervaloAtualizacao = null;
+        let map = null;
+        let maquinariosMarkers = {};
+        let locaisMarkers = {};
+        let depositosMarkers = {};
+
+        // ============================================
+        // INICIALIZAR MAPA
+        // ============================================
+        function inicializarMapa(centroLat, centroLon) {
+            // Criar mapa centrado no canteiro
+            map = L.map('map').setView([centroLat, centroLon], 15);
+
+            // Adicionar camada do OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            console.log('🗺️ Mapa inicializado');
+        }
+
+        // ============================================
+        // FUNÇÃO: Buscar Dados do Mapa
+        // ============================================
+        async function atualizarMapa() {
+            console.log('🔄 Atualizando mapa...');
+
+            // Mostrar loading
+            document.getElementById('btnRefreshText').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+
+            try {
+                const response = await fetch(CONFIG.apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar dados do mapa');
+                }
+
+                const dados = await response.json();
+                console.log('📦 Dados recebidos:', dados);
+
+                // Se é a primeira vez, inicializar o mapa
+                if (!map) {
+                    inicializarMapa(dados.centroLatitude, dados.centroLongitude);
+                }
+
+                // Atualizar marcadores
+                atualizarMarcadoresMaquinarios(dados.maquinarios || []);
+                atualizarMarcadoresLocais(dados.locaisSolicitacao || []);
+                atualizarMarcadoresDepositos(dados.depositos || []);
+                atualizarSolicitacoes(dados.solicitacoesAtivas || []);
+
+                // Atualizar interface
+                renderizarMaquinarios(dados.maquinarios || []);
+                atualizarEstatisticas(dados.maquinarios || []);
+
+                // Atualizar timestamp
+                document.getElementById('lastUpdate').textContent = 
+                    new Date().toLocaleTimeString('pt-BR');
+
+            } catch (error) {
+                console.error('❌ Erro ao atualizar mapa:', error);
+            } finally {
+                // Esconder loading
+                document.getElementById('btnRefreshText').style.display = 'inline';
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Marcadores de Maquinários
+        // ============================================
+        function atualizarMarcadoresMaquinarios(maquinarios) {
+            // Remover marcadores antigos que não existem mais
+            Object.keys(maquinariosMarkers).forEach(id => {
+                if (!maquinarios.find(m => m.id == id)) {
+                    map.removeLayer(maquinariosMarkers[id]);
+                    delete maquinariosMarkers[id];
+                }
+            });
+
+            // Adicionar ou atualizar marcadores
+            maquinarios.forEach(maquinario => {
+                const tempoDecorrido = calcularTempoDecorrido(maquinario.dataUltimaAtualizacao);
+                const statusOnline = tempoDecorrido < 60;
+
+                // Criar ícone customizado
+                const icon = L.divIcon({
+                    className: 'maquinario-icon',
+                    html: `<div style="width: 100%; height: 100%; border-radius: 50%; background: ${statusOnline ? '#28a745' : '#dc3545'};"></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                // Se já existe, atualizar posição
+                if (maquinariosMarkers[maquinario.id]) {
+                    maquinariosMarkers[maquinario.id].setLatLng([maquinario.latitude, maquinario.longitude]);
+                } else {
+                    // Criar novo marcador
+                    const marker = L.marker([maquinario.latitude, maquinario.longitude], { icon: icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${maquinario.nome}</strong><br>
+                            Tipo: ${maquinario.tipo}<br>
+                            Status: ${maquinario.status}<br>
+                            Operador: ${maquinario.operadorNome || 'Sem operador'}<br>
+                            Capacidade: ${maquinario.capacidadeCarga} kg
+                        `);
+                    
+                    maquinariosMarkers[maquinario.id] = marker;
+                }
+            });
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Marcadores de Locais
+        // ============================================
+        function atualizarMarcadoresLocais(locais) {
+            // Remover marcadores antigos
+            Object.keys(locaisMarkers).forEach(id => {
+                if (!locais.find(l => l.id == id)) {
+                    map.removeLayer(locaisMarkers[id]);
+                    delete locaisMarkers[id];
+                }
+            });
+
+            // Adicionar ou atualizar marcadores
+            locais.forEach(local => {
+                const icon = L.divIcon({
+                    className: 'local-icon',
+                    html: `<div style="width: 100%; height: 100%; border-radius: 50%; background: #28a745;"></div>`,
+                    iconSize: [25, 25],
+                    iconAnchor: [12, 12]
+                });
+
+                if (locaisMarkers[local.id]) {
+                    // Já existe, não precisa atualizar (são pontos fixos)
+                } else {
+                    const marker = L.marker([local.latitude, local.longitude], { icon: icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${local.nome}</strong><br>
+                            Tipo: ${local.dadosAdicionais?.TipoConstrucao || 'N/A'}<br>
+                            ${local.descricao || ''}
+                        `);
+                    
+                    locaisMarkers[local.id] = marker;
+                }
+            });
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Marcadores de Depósitos
+        // ============================================
+        function atualizarMarcadoresDepositos(depositos) {
+            // Remover marcadores antigos
+            Object.keys(depositosMarkers).forEach(id => {
+                if (!depositos.find(d => d.id == id)) {
+                    map.removeLayer(depositosMarkers[id]);
+                    delete depositosMarkers[id];
+                }
+            });
+
+            // Adicionar ou atualizar marcadores
+            depositos.forEach(deposito => {
+                const icon = L.divIcon({
+                    className: 'deposito-icon',
+                    html: `<div style="width: 100%; height: 100%; border-radius: 50%; background: #ffc107;"></div>`,
+                    iconSize: [25, 25],
+                    iconAnchor: [12, 12]
+                });
+
+                if (depositosMarkers[deposito.id]) {
+                    // Já existe, não precisa atualizar (são pontos fixos)
+                } else {
+                    const marker = L.marker([deposito.latitude, deposito.longitude], { icon: icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${deposito.nome}</strong><br>
+                            ${deposito.descricao || ''}<br>
+                            Responsável: ${deposito.dadosAdicionais?.Responsavel || 'N/A'}
+                        `);
+                    
+                    depositosMarkers[deposito.id] = marker;
+                }
+            });
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Solicitações (rotas)
+        // ============================================
+        function atualizarSolicitacoes(solicitacoes) {
+            // Por enquanto, apenas logar as solicitações
+            // Futuramente pode adicionar rotas/polylines entre origem e destino
+            console.log('📋 Solicitações ativas:', solicitacoes);
+        }
+
+        // ============================================
+        // FUNÇÃO: Renderizar Lista de Maquinários
+        // ============================================
+        function renderizarMaquinarios(maquinarios) {
+            const container = document.getElementById('listaMaquinarios');
+            
+            if (maquinarios.length === 0) {
+                container.innerHTML = `
+                    <div class="card">
+                        <p style="text-align: center; color: #999;">
+                            Nenhum maquinário ativo no momento
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = maquinarios.map(m => {
+                const statusClass = m.estaDisponivel ? 'success' : 
+                                  m.status === 'EmUso' ? 'warning' : 'danger';
+                
+                const tempoDecorrido = calcularTempoDecorrido(m.dataUltimaAtualizacao);
+                const statusOnline = tempoDecorrido < 60 ? 'online' : 'offline';
+
+                return `
+                    <div class="card" onclick="focarNoMaquinario(${m.id})">
+                        <h3>
+                            <span class="pulse-dot ${statusOnline}"></span>
+                            ${m.nome}
+                            <span class="badge badge-${statusClass}" style="margin-left: auto;">
+                                ${m.status}
+                            </span>
+                        </h3>
+                        <div class="info-item">
+                            <span class="info-label">Tipo:</span>
+                            <span class="info-value">${m.tipo}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Operador:</span>
+                            <span class="info-value">${m.operadorNome || 'Sem operador'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Localização:</span>
+                            <span class="info-value">
+                                ${m.latitude.toFixed(5)}, ${m.longitude.toFixed(5)}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Capacidade:</span>
+                            <span class="info-value">${m.capacidadeCarga} kg</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Última Atualização:</span>
+                            <span class="info-value">${tempoDecorrido}s atrás</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // FUNÇÃO: Focar no Maquinário no Mapa
+        // ============================================
+        function focarNoMaquinario(maquinarioId) {
+            const marker = maquinariosMarkers[maquinarioId];
+            if (marker) {
+                map.setView(marker.getLatLng(), 18);
+                marker.openPopup();
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Estatísticas
+        // ============================================
+        function atualizarEstatisticas(maquinarios) {
+            document.getElementById('totalMaquinarios').textContent = maquinarios.length;
+            
+            const disponiveis = maquinarios.filter(m => m.estaDisponivel).length;
+            document.getElementById('maquinariosDisponiveis').textContent = disponiveis;
+        }
+
+        // ============================================
+        // FUNÇÃO: Calcular Tempo Decorrido
+        // ============================================
+        function calcularTempoDecorrido(dataAtualizacao) {
+            if (!dataAtualizacao) return 999;
+            
+            const agora = new Date();
+            const atualizacao = new Date(dataAtualizacao);
+            const diferenca = Math.floor((agora - atualizacao) / 1000); // em segundos
+            
+            return diferenca;
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        window.addEventListener('load', () => {
+            console.log('🌐 Mapa do apontador carregado');
+            
+            // Primeira atualização
+            atualizarMapa();
+            
+            // Configurar atualização automática
+            intervaloAtualizacao = setInterval(atualizarMapa, CONFIG.intervaloAtualizacao);
+        });
+
+        // Limpar intervalo ao sair
+        window.addEventListener('beforeunload', () => {
+            if (intervaloAtualizacao) {
+                clearInterval(intervaloAtualizacao);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operador de Maquinário - Rastreamento GPS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.active {
+            background: #28a745;
+        }
+
+        .status-indicator.inactive {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .map-preview {
+            width: 100%;
+            height: 200px;
+            background: #e9ecef;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚜 Rastreamento de Maquinário</h1>
+        <p class="subtitle">Sistema de localização GPS em tempo real</p>
+
+        <!-- Alerta de permissão GPS -->
+        <div id="alertGPS" class="alert alert-info">
+            ℹ️ O navegador solicitará permissão para acessar sua localização GPS.
+        </div>
+
+        <!-- Informações do Operador e Maquinário -->
+        <div class="status-card">
+            <h3 style="margin-bottom: 15px;">📋 Informações</h3>
+            <div class="info-row">
+                <span class="info-label">Operador:</span>
+                <span class="info-value" id="operadorNome">Carregando...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Maquinário:</span>
+                <span class="info-value" id="maquinarioNome">Carregando...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tipo:</span>
+                <span class="info-value" id="maquinarioTipo">-</span>
+            </div>
+        </div>
+
+        <!-- Status do GPS -->
+        <div class="status-card">
+            <h3 style="margin-bottom: 15px;">
+                <span class="status-indicator" id="statusIndicator"></span>
+                Status do Rastreamento
+            </h3>
+            <div class="info-row">
+                <span class="info-label">Latitude:</span>
+                <span class="info-value" id="latitude">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Longitude:</span>
+                <span class="info-value" id="longitude">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Precisão:</span>
+                <span class="info-value" id="precisao">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Velocidade:</span>
+                <span class="info-value" id="velocidade">0 km/h</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Última Atualização:</span>
+                <span class="info-value" id="ultimaAtualizacao">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Atualizações Enviadas:</span>
+                <span class="info-value" id="contadorAtualizacoes">0</span>
+            </div>
+        </div>
+
+        <!-- Botões de Controle -->
+        <button id="btnIniciar" class="btn btn-primary" onclick="iniciarRastreamento()">
+            ▶️ Iniciar Rastreamento
+        </button>
+        <button id="btnParar" class="btn btn-danger hidden" onclick="pararRastreamento()">
+            ⏹️ Parar Rastreamento
+        </button>
+
+        <!-- Prévia do Mapa (Opcional) -->
+        <div class="map-preview">
+            🗺️ Sua localização está sendo rastreada
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURAÇÕES
+        // ============================================
+        const CONFIG = {
+            // Intervalo de envio para o servidor (em milissegundos)
+            intervaloEnvio: 15000, // 15 segundos
+            
+            // URL da API (ajustar para sua API)
+            apiUrl: '/api/maquinario/atualizar-localizacao',
+            
+            // ID do maquinário (normalmente viria da autenticação)
+            maquinarioId: 1, // Substituir por valor real do login
+            
+            // Opções de precisão do GPS
+            gpsOptions: {
+                enableHighAccuracy: true,  // Usa GPS de alta precisão
+                timeout: 10000,            // Timeout de 10 segundos
+                maximumAge: 0              // Não usar cache de localização
+            }
+        };
+
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let watchId = null;
+        let intervaloEnvio = null;
+        let ultimaLocalizacao = null;
+        let contadorAtualizacoes = 0;
+        let rastreamentoAtivo = false;
+
+        // ============================================
+        // FUNÇÃO: Iniciar Rastreamento
+        // ============================================
+        function iniciarRastreamento() {
+            console.log('🚀 Iniciando rastreamento GPS...');
+
+            // Verificar se o navegador suporta Geolocation
+            if (!navigator.geolocation) {
+                mostrarAlerta('Seu navegador não suporta geolocalização!', 'danger');
+                return;
+            }
+
+            // Solicitar permissão e iniciar monitoramento contínuo
+            watchId = navigator.geolocation.watchPosition(
+                onSucessoLocalizacao,
+                onErroLocalizacao,
+                CONFIG.gpsOptions
+            );
+
+            // Configurar envio periódico para o servidor
+            intervaloEnvio = setInterval(enviarLocalizacaoParaServidor, CONFIG.intervaloEnvio);
+
+            // Atualizar interface
+            rastreamentoAtivo = true;
+            atualizarInterface();
+            mostrarAlerta('✅ Rastreamento iniciado com sucesso!', 'success');
+        }
+
+        // ============================================
+        // FUNÇÃO: Parar Rastreamento
+        // ============================================
+        function pararRastreamento() {
+            console.log('⏹️ Parando rastreamento GPS...');
+
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            if (intervaloEnvio !== null) {
+                clearInterval(intervaloEnvio);
+                intervaloEnvio = null;
+            }
+
+            rastreamentoAtivo = false;
+            atualizarInterface();
+            mostrarAlerta('Rastreamento pausado.', 'info');
+        }
+
+        // ============================================
+        // CALLBACK: Sucesso ao obter localização
+        // ============================================
+        function onSucessoLocalizacao(position) {
+            console.log('📍 Localização obtida:', position.coords);
+
+            // Armazenar localização
+            ultimaLocalizacao = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                precisao: position.coords.accuracy,
+                velocidade: position.coords.speed || 0,
+                timestamp: new Date(position.timestamp)
+            };
+
+            // Atualizar interface
+            atualizarDadosLocalizacao();
+        }
+
+        // ============================================
+        // CALLBACK: Erro ao obter localização
+        // ============================================
+        function onErroLocalizacao(error) {
+            console.error('❌ Erro ao obter localização:', error);
+
+            let mensagem = 'Erro ao obter localização GPS';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    mensagem = '🚫 Permissão negada! Por favor, permita o acesso à localização.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    mensagem = '📡 Localização indisponível. Verifique se o GPS está ativo.';
+                    break;
+                case error.TIMEOUT:
+                    mensagem = '⏱️ Timeout ao buscar localização. Tentando novamente...';
+                    break;
+            }
+
+            mostrarAlerta(mensagem, 'danger');
+        }
+
+        // ============================================
+        // FUNÇÃO: Enviar Localização para o Servidor
+        // ============================================
+        async function enviarLocalizacaoParaServidor() {
+            if (!ultimaLocalizacao) {
+                console.log('⚠️ Nenhuma localização disponível para enviar');
+                return;
+            }
+
+            const dados = {
+                maquinarioId: CONFIG.maquinarioId,
+                latitude: ultimaLocalizacao.latitude,
+                longitude: ultimaLocalizacao.longitude,
+                velocidadeAtual: ultimaLocalizacao.velocidade * 3.6, // m/s para km/h
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('📤 Enviando localização para servidor:', dados);
+
+            try {
+                const response = await fetch(CONFIG.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    console.log('✅ Localização enviada com sucesso:', resultado);
+                    contadorAtualizacoes++;
+                    document.getElementById('contadorAtualizacoes').textContent = contadorAtualizacoes;
+                } else {
+                    console.error('❌ Erro ao enviar localização:', response.statusText);
+                }
+            } catch (error) {
+                console.error('❌ Erro na requisição:', error);
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Dados na Interface
+        // ============================================
+        function atualizarDadosLocalizacao() {
+            if (!ultimaLocalizacao) return;
+
+            document.getElementById('latitude').textContent = 
+                ultimaLocalizacao.latitude.toFixed(6);
+            
+            document.getElementById('longitude').textContent = 
+                ultimaLocalizacao.longitude.toFixed(6);
+            
+            document.getElementById('precisao').textContent = 
+                ultimaLocalizacao.precisao.toFixed(0) + ' metros';
+            
+            const velocidadeKmh = (ultimaLocalizacao.velocidade * 3.6).toFixed(1);
+            document.getElementById('velocidade').textContent = velocidadeKmh + ' km/h';
+            
+            document.getElementById('ultimaAtualizacao').textContent = 
+                ultimaLocalizacao.timestamp.toLocaleTimeString('pt-BR');
+        }
+
+        // ============================================
+        // FUNÇÃO: Atualizar Interface
+        // ============================================
+        function atualizarInterface() {
+            const btnIniciar = document.getElementById('btnIniciar');
+            const btnParar = document.getElementById('btnParar');
+            const statusIndicator = document.getElementById('statusIndicator');
+
+            if (rastreamentoAtivo) {
+                btnIniciar.classList.add('hidden');
+                btnParar.classList.remove('hidden');
+                statusIndicator.classList.add('active');
+                statusIndicator.classList.remove('inactive');
+            } else {
+                btnIniciar.classList.remove('hidden');
+                btnParar.classList.add('hidden');
+                statusIndicator.classList.add('inactive');
+                statusIndicator.classList.remove('active');
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO: Mostrar Alerta
+        // ============================================
+        function mostrarAlerta(mensagem, tipo) {
+            const alertGPS = document.getElementById('alertGPS');
+            alertGPS.className = `alert alert-${tipo}`;
+            alertGPS.textContent = mensagem;
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        window.addEventListener('load', () => {
+            console.log('🌐 Página carregada');
+            
+            // Carregar informações do operador e maquinário
+            // (Normalmente viria de uma API após login)
+            document.getElementById('operadorNome').textContent = 'Roberto Motorista';
+            document.getElementById('maquinarioNome').textContent = 'Caminhonete 01';
+            document.getElementById('maquinarioTipo').textContent = 'Caminhonete';
+            
+            atualizarInterface();
+        });
+
+        // Parar rastreamento ao sair da página
+        window.addEventListener('beforeunload', () => {
+            if (rastreamentoAtivo) {
+                pararRastreamento();
+            }
+        });
+    </script>
+</body>
+</html>
